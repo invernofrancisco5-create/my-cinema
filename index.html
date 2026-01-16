@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>PETER_CINEMA_SUPREME_FINAL</title>
+  <style>
+    body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+    canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; }
+    .box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 10, 0, 0.95); border: 2px solid #0f0; padding: 30px; width: 350px; text-align: center; box-shadow: 0 0 25px #0f0; z-index: 100; }
+    input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; outline: none; }
+    button { width: 100%; padding: 10px; background: #0f0; color: #000; border: none; font-weight: bold; cursor: pointer; }
+    #error-screen { display: none; border-color: #f00; box-shadow: 0 0 30px #f00; z-index: 150; }
+    #error-screen h1, #error-screen p { color: #f00; margin: 10px 0; }
+    #cinema { display: none; width: 100%; height: 100vh; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+    .nav { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #0f0; padding-bottom: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.8); position: sticky; top: 0; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .video-card { background: rgba(0, 20, 0, 0.8); border: 1px solid #0f0; padding: 10px; cursor: pointer; }
+    .thumb-img { width: 100%; height: 180px; object-fit: cover; }
+    #video-focus { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 200; justify-content: center; align-items: center; background: #000; }
+    .focus-container { width: 85%; height: 80%; border: 3px solid #0f0; box-shadow: 0 0 60px #0f0; animation: swing 6s ease-in-out infinite; position: relative; }
+    .ghost-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 205; }
+    #player { width: 100%; height: 100%; }
+    #admin { display: none; position: fixed; top: 10px; left: 10px; background: rgba(0,0,30,0.95); border: 1px solid #0ff; padding: 15px; color: #0ff; z-index: 300; max-height: 70vh; overflow-y: auto; }
+    @keyframes alarm-flash { 50% { background: rgba(255, 0, 0, 0.4); } }
+    .flashing { animation: alarm-flash 0.3s infinite; }
+    @keyframes swing { 0%, 100% { transform: translateX(-20px) rotate(-0.7deg); } 50% { transform: translateX(20px) rotate(0.7deg); } }
+  </style>
+</head>
+<body id="main-body">
+
+<canvas id="m"></canvas>
+
+<div class="box" id="login-screen">
+  <h2>SYSTEM_LOCKED</h2>
+  <input type="text" id="u" placeholder="USER_ID">
+  <input type="password" id="p" placeholder="ACCESS_KEY">
+  <button onclick="check()">DECRYPT</button>
+</div>
+
+<div class="box" id="error-screen">
+  <h1>ALERTA</h1>
+  <p>ACESSO NEGADO</p>
+  <button onclick="location.reload()" style="background:#f00; margin-top:15px;">REENTRAR</button>
+</div>
+
+<div id="video-focus">
+  <span onclick="closeFocus()" style="position:absolute; top:20px; right:30px; color:#0f0; font-size:40px; cursor:pointer; z-index:210;">[X]</span>
+  <div class="focus-container"><div class="ghost-layer"></div><div id="player"></div></div>
+</div>
+
+<div id="cinema">
+  <div class="nav"><h2>PETER_GHOST_CINEMA</h2><button onclick="addVideo()">+</button></div>
+  <div id="video-area" class="video-grid"></div>
+</div>
+
+<div id="admin"><h3>INTRUSÕES:</h3><div id="logs-list"></div><button onclick="this.parentElement.style.display='none'">X</button></div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  const c = document.getElementById('m'); const q = c.getContext('2d');
+  function res() { c.width = window.innerWidth; c.height = window.innerHeight; }
+  window.onresize = res; res();
+  const s = Array(256).fill(0);
+  let mI;
+  function draw() {
+    q.fillStyle = "rgba(0,0,0,0.1)"; q.fillRect(0,0,c.width,c.height);
+    q.fillStyle = "#0f0";
+    s.map((y, i) => { q.fillText(Math.floor(Math.random()*2), i * 10, y); s[i] = y > 758 + Math.random() * 1e4 ? 0 : y + 10; });
+  }
+  function startM() { mI = setInterval(draw, 35); }
+  startM();
+
+  let player;
+
+  function check() {
+    const u = document.getElementById('u').value, p = document.getElementById('p').value;
+    if (u === "PETEERque" && p === "112233") {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('cinema').style.display = 'block';
+      loadVideos();
+    } else {
+      // SOM DE ERRO
+      const audio = new Audio('https://www.soundjay.com/buttons/beep-11.mp3');
+      audio.play().catch(()=>{});
+      document.getElementById('main-body').classList.add('flashing');
+      let logs = JSON.parse(localStorage.getItem('hacker_hits') || "[]");
+      logs.push({u, p, t: new Date().toLocaleTimeString()});
+      localStorage.setItem('hacker_hits', JSON.stringify(logs));
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('error-screen').style.display = 'block';
+    }
+  }
+
+  function addVideo() {
+    let url = prompt("Link:");
+    if (url) {
+      let id = url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("be/")[1]?.split("?")[0];
+      let vids = JSON.parse(localStorage.getItem('my_vids_ids') || "[]");
+      vids.push(id); localStorage.setItem('my_vids_ids', JSON.stringify(vids));
+      loadVideos();
+    }
+  }
+
+  function loadVideos() {
+    const ids = JSON.parse(localStorage.getItem('my_vids_ids') || "[]");
+    document.getElementById('video-area').innerHTML = ids.map(id => `<div class="video-card" onclick="openFocus('${id}')"><img class="thumb-img" src="https://img.youtube.com/vi/${id}/mqdefault.jpg"></div>`).join('');
+  }
+
+  function openFocus(id, startTime = 0) {
+    clearInterval(mI);
+    document.getElementById('cinema').style.display = 'none';
+    document.getElementById('video-focus').style.display = 'flex';
+    if (player) player.destroy();
+    player = new YT.Player('player', {
+      videoId: id,
+      playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1, 'enablejsapi': 1, 'start': startTime, 'vq': 'hd1080' },
+      events: { 'onReady': (e) => e.target.playVideo() }
+    });
+  }
+
+  function closeFocus() {
+    if (player) player.stopVideo();
+    document.getElementById('video-focus').style.display = 'none';
+    document.getElementById('cinema').style.display = 'block';
+    startM();
+  }
+
+  window.onkeydown = (e) => {
+    const k = e.key.toLowerCase();
+    if (k === 'l') {
+      const logs = JSON.parse(localStorage.getItem('hacker_hits') || "[]");
+      document.getElementById('logs-list').innerHTML = logs.map(l => `<p style="border-bottom:1px solid #333">[${l.t}] U: ${l.u} | P: ${l.p}</p>`).join('');
+      document.getElementById('admin').style.display = 'block';
+    }
+    if (!player || typeof player.getPlayerState !== 'function') return;
+    if (k === 'e') player.getPlayerState() === 1 ? player.pauseVideo() : player.playVideo();
+    if (k === 'k') openFocus(player.getVideoData().video_id, Math.floor(player.getCurrentTime()));
+    if (e.key === 'ArrowRight') player.seekTo(player.getCurrentTime() + 10, true);
+    if (e.key === 'ArrowLeft') player.seekTo(player.getCurrentTime() - 10, true);
+    if (e.key === 'Escape') closeFocus();
+  }
+</script>
+</body>
+</html>
